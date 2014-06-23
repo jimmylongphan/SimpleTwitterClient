@@ -3,12 +3,17 @@
  */
 package com.codepath.apps.basictwitter.models;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Locale;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import android.text.format.DateUtils;
+
 
 /**
  *
@@ -18,8 +23,9 @@ public class Tweet {
     private long uid;
     private String createdAt;
     private User user;
+    private String relativeTimestamp;
     
-
+    public static final String TWITTER_FORMAT = "EEE MMM dd HH:mm:ss ZZZZZ yyyy";
 
     /**
      * Factory method to fill in Tweet from json
@@ -36,6 +42,7 @@ public class Tweet {
             tweet.body = jsonObject.getString("text");
             tweet.uid = jsonObject.getLong("id");
             tweet.createdAt = jsonObject.getString("created_at");
+            tweet.relativeTimestamp = tweet.getRelativeTimeAgo(tweet.createdAt);
             tweet.user = User.fromJson(jsonObject.getJSONObject("user"));
         } catch (JSONException e ) {
             e.printStackTrace();
@@ -95,11 +102,38 @@ public class Tweet {
         return user;
     }
 
+    public String getRelativeTimestamp() {
+        return relativeTimestamp;
+    }
+    
     
     @Override
     public String toString() {
         return getBody() + " - " + getUser().getScreenName();
     }
 
-    
+ 
+    /**
+     * Method to parse the created_at field from twitter.
+     * 
+     * getRelativeTimeAgo("Mon Apr 01 21:16:23 +0000 2014");
+     * 
+     * @param rawJsonDate
+     * @return relativeDate of the tweet
+     */
+    public String getRelativeTimeAgo(String rawJsonDate) {
+        SimpleDateFormat sf = new SimpleDateFormat(TWITTER_FORMAT, Locale.ENGLISH);
+        sf.setLenient(true);
+     
+        String relativeDate = "";
+        try {
+            long dateMillis = sf.parse(rawJsonDate).getTime();
+            relativeDate = DateUtils.getRelativeTimeSpanString(dateMillis,
+                    System.currentTimeMillis(), DateUtils.SECOND_IN_MILLIS).toString();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+     
+        return relativeDate;
+    } 
 }
