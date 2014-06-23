@@ -1,7 +1,3 @@
-*.class
-*.project
-*.settings/
-
 #binaries
 bin/
 
