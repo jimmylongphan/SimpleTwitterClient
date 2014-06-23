@@ -10,6 +10,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name="com.codepath.apps.basictwitter.TwitterApplication"
@@ -46,6 +47,10 @@
         <activity
             android:name="com.codepath.apps.basictwitter.TimelineActivity"
             android:label="@string/title_activity_timeline" >
+        </activity>
+        <activity
+            android:name="com.codepath.apps.basictwitter.ComposeActivity"
+            android:label="@string/title_activity_compose" >
         </activity>
     </application>
 

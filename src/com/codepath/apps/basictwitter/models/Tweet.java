@@ -20,7 +20,7 @@ import android.text.format.DateUtils;
  */
 public class Tweet {
     private String body;
-    private long uid;
+    private long uid;  // used for since_id and max_id
     private String createdAt;
     private User user;
     private String relativeTimestamp;

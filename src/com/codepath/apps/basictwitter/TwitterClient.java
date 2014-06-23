@@ -5,7 +5,9 @@ import org.scribe.builder.api.FlickrApi;
 import org.scribe.builder.api.TwitterApi;
 
 import android.content.Context;
+import android.widget.ArrayAdapter;
 
+import com.codepath.apps.basictwitter.models.Tweet;
 import com.codepath.oauth.OAuthBaseClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
@@ -29,6 +31,57 @@ public class TwitterClient extends OAuthBaseClient {
     public static final String REST_CONSUMER_SECRET = "5lSvjQYA7AIoWTXJKCtlnCsC215M3bcCJzEFtDItbwemEXKo2g"; // Change this
     public static final String REST_CALLBACK_URL = "oauth://cpbasictweets"; // Change this (here and in manifest)
     
+    private Long count = (long) 5;
+    private Long since_id = (long) 1;
+    private Long max_id = Long.MIN_VALUE;
+    
+    private boolean firstCall = true;
+    
+    /**
+     * @return the since_id
+     */
+    public Long getSince_id() {
+        return since_id;
+    }
+
+
+    /**
+     * Set to the greatest ID of ALL the tweets the application has already processed.
+     * 
+     * not inclusive, tweets returned will be higher
+     * 
+     * @param since_id the since_id to set
+     */
+    public void setSince_id(Long since_id) {
+        if( since_id > this.since_id )
+        {
+            this.since_id = since_id;
+        }
+    }
+
+
+    /**
+     * @return the max_id
+     */
+    public Long getMax_id() {
+        return max_id;
+    }
+
+
+    /**
+     * First request to timeline should only specify a count.
+     * Keep track of lowest ID received in a SINGLE response, then passed to next request.
+     * Subtract 1 from lowest tweet ID.
+     * 
+     * inclusive, tweets returned will be lower
+     * 
+     * @param max_id the max_id to set
+     */
+    public void setMax_id(Long max_id) {
+        this.max_id = max_id;
+    }
+
+
     public TwitterClient(Context context) {
         super(context, REST_API_CLASS, REST_URL, REST_CONSUMER_KEY, REST_CONSUMER_SECRET, REST_CALLBACK_URL);
     }
@@ -42,9 +95,60 @@ public class TwitterClient extends OAuthBaseClient {
        String apiUrl = getApiUrl("statuses/home_timeline.json");
        RequestParams params = new RequestParams();
        
-       params.put("since_id", "1");
-       client.get(apiUrl, params, handler);  // if no params set, then just pass null
+       //params.put("since_id", this.since_id.toString());  
+       //params.put("max_id", this.max_id.toString());
        
+       params.put("count", this.count.toString());
+       if ( firstCall == false ) {
+           params.put("max_id", max_id.toString() );
+       }
+       else {
+           firstCall = false;
+       }
+       
+       client.get(apiUrl, params, handler);  // if no params set, then just pass null
+    }
+
+    /**
+     * 
+     * @param aTweets
+     */
+    public void setMax_id(ArrayAdapter<Tweet> aTweets) {
+        
+        if ( aTweets.isEmpty() ) {
+            return;
+        }
+        
+        // initialize first max_id value
+        Tweet tweet = aTweets.getItem(0);
+        
+        Long lowestMax = tweet.getUid();
+        Long currentMax;
+        for ( int i=1 ; i < aTweets.getCount(); i++ ) {
+           tweet = aTweets.getItem(i);
+           currentMax = tweet.getUid();
+           if ( currentMax < lowestMax ) {
+               lowestMax = currentMax;
+           }
+        }
+        
+        // decrease max_id by 1
+        lowestMax--;
+        this.max_id = lowestMax;
+    }
+
+    
+    /**
+     * Method to send a tweet
+     * 
+     * @param tweetMsg message to tweet
+     */
+    public void tweet(String tweetMsg, AsyncHttpResponseHandler handler ) {
+        String apiUrl = getApiUrl("statuses/update.json");
+        RequestParams params = new RequestParams();
+        
+        params.put("status", tweetMsg);
+        client.post(apiUrl, params, handler ); // if no params set, then pass null
     }
     
     
