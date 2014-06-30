@@ -13,5 +13,6 @@
     <string name="cancel">Cancel</string>
     <string name="name">name</string>
     <string name="timestamp">timestamp</string>
+    <string name="title_activity_profile">ProfileActivity</string>
 
 </resources>

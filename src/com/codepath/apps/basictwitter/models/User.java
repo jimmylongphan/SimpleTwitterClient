@@ -15,7 +15,12 @@ public class User {
     private long uid;
     private String screenName;
     private String profileImageUrl;
-    
+    private String profileBackgroundImageUrl;
+    private int statusesCount;
+    private int followersCount;
+    private int friendsCount;
+    private String description;
+
 
     // User.fromJSON(...)
     /**
@@ -31,6 +36,11 @@ public class User {
             u.uid = jsonObject.getLong("id");
             u.screenName = jsonObject.getString("screen_name");
             u.profileImageUrl = jsonObject.getString("profile_image_url");
+            u.profileBackgroundImageUrl = jsonObject.getString("profile_background_image_url");
+            u.statusesCount = jsonObject.getInt("statuses_count");
+            u.followersCount = jsonObject.getInt("followers_count");
+            u.friendsCount = jsonObject.getInt("friends_count");
+            u.description = jsonObject.getString("description");
         } catch ( JSONException e ) {
             e.printStackTrace();
             return null;
@@ -62,5 +72,45 @@ public class User {
     public String getProfileImageUrl() {
         return profileImageUrl;
     }
+    /**
+     * @return the profileBackgroundImageUrl
+     */
+    public String getProfileBackgroundImageUrl() {
+        return profileBackgroundImageUrl;
+    }
 
+
+    /**
+     * @return the statusesCount
+     */
+    public int getStatusesCount() {
+        return statusesCount;
+    }
+
+
+    /**
+     * @return the followersCount
+     */
+    public int getFollowersCount() {
+        return followersCount;
+    }
+
+
+    /**
+     * @return the friendsCount
+     */
+    public int getFriendsCount() {
+        return friendsCount;
+    }
+
+
+    /**
+     * @return the description
+     */
+    public String getDescription() {
+        return description;
+    }
+    public String getTagline() {
+        return description;
+    }
 }

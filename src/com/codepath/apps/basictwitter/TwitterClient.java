@@ -1,13 +1,13 @@
 package com.codepath.apps.basictwitter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.scribe.builder.api.Api;
-import org.scribe.builder.api.FlickrApi;
 import org.scribe.builder.api.TwitterApi;
 
 import android.content.Context;
-import android.widget.ArrayAdapter;
 
-import com.codepath.apps.basictwitter.models.Tweet;
 import com.codepath.oauth.OAuthBaseClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
@@ -33,9 +33,23 @@ public class TwitterClient extends OAuthBaseClient {
     
     private Long count = (long) 5;
     private Long since_id = (long) 1;
-    private Long max_id = Long.MIN_VALUE;
+
+    private Map<String, Long> screenNameUserTimelineMaxMap;
+
+    private boolean mentionsFirstCall = true;
+    private boolean homeFirstCall = true;
+    private Long home_max_id = null;
+    private Long mentions_max_id = null;
     
-    private boolean firstCall = true;
+    
+    /**
+     * Constructor 
+     * @param context
+     */
+    public TwitterClient(Context context) {
+        super(context, REST_API_CLASS, REST_URL, REST_CONSUMER_KEY, REST_CONSUMER_SECRET, REST_CALLBACK_URL);
+        screenNameUserTimelineMaxMap = new HashMap<String, Long>();
+    }
     
     /**
      * @return the since_id
@@ -59,12 +73,35 @@ public class TwitterClient extends OAuthBaseClient {
         }
     }
 
+    public void setHome_max_id(long max_id) {
+        this.home_max_id = max_id;
+    }
+    
+    /**
+     * @return the mentions_max_id
+     */
+    public Long getMentions_max_id() {
+        return mentions_max_id;
+    }
+
 
     /**
-     * @return the max_id
+     * @param mentions_max_id the mentions_max_id to set
      */
-    public Long getMax_id() {
-        return max_id;
+    public void setMentions_max_id(Long mentions_max_id) {
+        this.mentions_max_id = mentions_max_id;
+    }
+
+
+    /**
+     * @return the user_timeline_max_id
+     */
+    public Long getUser_timeline_max_id( String screen_name ) {
+        if (screenNameUserTimelineMaxMap.containsKey(screen_name) ) {
+            return screenNameUserTimelineMaxMap.get(screen_name);
+        }
+        
+        return null;
     }
 
 
@@ -75,66 +112,11 @@ public class TwitterClient extends OAuthBaseClient {
      * 
      * inclusive, tweets returned will be lower
      * 
-     * @param max_id the max_id to set
+     * @param screen_name 
+     * @param user_timeline_max_id the user_timeline_max_id to set
      */
-    public void setMax_id(Long max_id) {
-        this.max_id = max_id;
-    }
-
-
-    public TwitterClient(Context context) {
-        super(context, REST_API_CLASS, REST_URL, REST_CONSUMER_KEY, REST_CONSUMER_SECRET, REST_CALLBACK_URL);
-    }
-    
-    
-    /**
-     * 
-     * @param handler
-     */
-    public void getHomeTimeline( AsyncHttpResponseHandler handler ) {
-       String apiUrl = getApiUrl("statuses/home_timeline.json");
-       RequestParams params = new RequestParams();
-       
-       //params.put("since_id", this.since_id.toString());  
-       //params.put("max_id", this.max_id.toString());
-       
-       params.put("count", this.count.toString());
-       if ( firstCall == false ) {
-           params.put("max_id", max_id.toString() );
-       }
-       else {
-           firstCall = false;
-       }
-       
-       client.get(apiUrl, params, handler);  // if no params set, then just pass null
-    }
-
-    /**
-     * 
-     * @param aTweets
-     */
-    public void setMax_id(ArrayAdapter<Tweet> aTweets) {
-        
-        if ( aTweets.isEmpty() ) {
-            return;
-        }
-        
-        // initialize first max_id value
-        Tweet tweet = aTweets.getItem(0);
-        
-        Long lowestMax = tweet.getUid();
-        Long currentMax;
-        for ( int i=1 ; i < aTweets.getCount(); i++ ) {
-           tweet = aTweets.getItem(i);
-           currentMax = tweet.getUid();
-           if ( currentMax < lowestMax ) {
-               lowestMax = currentMax;
-           }
-        }
-        
-        // decrease max_id by 1
-        lowestMax--;
-        this.max_id = lowestMax;
+    public void setUser_timeline_max_id(String screen_name, Long user_timeline_max_id) {
+        screenNameUserTimelineMaxMap.put(screen_name, user_timeline_max_id);
     }
 
     
@@ -150,6 +132,106 @@ public class TwitterClient extends OAuthBaseClient {
         params.put("status", tweetMsg);
         client.post(apiUrl, params, handler ); // if no params set, then pass null
     }
+    
+    
+    /**
+     * API call to twitter to get home timeline
+     * https://api.twitter.com/1.1/statuses/user_timeline.json
+     * 
+     * @param handler
+     */
+    public void getHomeTimeline( AsyncHttpResponseHandler handler ) {
+       String apiUrl = getApiUrl("statuses/home_timeline.json");
+       RequestParams params = new RequestParams();
+              
+       params.put("count", this.count.toString());
+       if ( homeFirstCall == false && home_max_id != null ) {
+           params.put("max_id", home_max_id.toString() );
+       }
+       else {
+           homeFirstCall = false;
+       }
+       
+       client.get(apiUrl, params, handler);  // if no params set, then just pass null
+    }
+
+
+    /**
+     * API call to twitter to get mentions
+     * 
+     * @param handler
+     */
+    public void getMentionsTimeline( AsyncHttpResponseHandler handler) {
+        String apiUrl = getApiUrl("statuses/mentions_timeline.json");
+        RequestParams params = new RequestParams();
+               
+        params.put("count", this.count.toString());
+        if ( mentionsFirstCall == false && mentions_max_id != null ) {
+            params.put("max_id", mentions_max_id.toString() );
+        }
+        else {
+            mentionsFirstCall = false;
+        }
+        
+        client.get(apiUrl, params, handler);  // if no params set, then just pass null
+    }
+    
+
+    /**
+     * API call to get user info.
+     * 
+     * @param handler
+     */
+    public void getMyInfo( AsyncHttpResponseHandler handler) {
+        String apiUrl = getApiUrl("account/verify_credentials.json");
+        client.get(apiUrl, null, handler);  // if no params set, then just pass null
+    }
+    
+    /**
+     * API call to get user info.
+     * https://dev.twitter.com/docs/api/1.1/get/users/show.json
+     * https://api.twitter.com/1.1/users/show.json
+     * @param user_id 
+     * @param handler
+     */
+    public void getUserInfo( Long user_id, String screen_name, 
+            AsyncHttpResponseHandler handler) {
+        String apiUrl = getApiUrl("users/show.json");
+        RequestParams params = new RequestParams();
+        
+        params.put("user_id", user_id.toString());
+        params.put("screen_name", screen_name);
+        client.get(apiUrl, params, handler);  // if no params set, then just pass null
+    }
+    
+    /**
+     * API call to get user timeline
+     * 
+     * @param handler
+     */
+    public void getUserTimeline( Long user_id, String screen_name,
+            AsyncHttpResponseHandler handler) {
+        String apiUrl = getApiUrl("statuses/user_timeline.json");
+        RequestParams params = new RequestParams();
+               
+        params.put("count", this.count.toString());
+        
+        // getting info about the user
+        if ( user_id != null ) {
+            params.put("user_id", user_id.toString());
+        }
+        if ( screen_name != null && screen_name.isEmpty() == false ) {
+            params.put("screen_name", screen_name);
+        }
+        
+        if ( screenNameUserTimelineMaxMap.containsKey(screen_name) == true ) {
+            params.put("max_id", screenNameUserTimelineMaxMap.get(screen_name).toString() );
+        }
+        
+        client.get(apiUrl, params, handler);  // if no params set, then just pass null
+    }
+
+
     
     
     // CHANGE THIS
